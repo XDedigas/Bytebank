@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:bytebank/http/webclient.dart';
 import 'package:bytebank/models/transferencia.dart';
@@ -26,7 +27,7 @@ class TransferenciaWebClient {
       return Transferencia.fromJson(jsonDecode(response.body));
     }
 
-    throw HttpException(_getMessage(response.statusCode));
+    return Future.error(HttpException(_getMessage(response.statusCode)));
   }
 
   String? _getMessage(int statusCode) {

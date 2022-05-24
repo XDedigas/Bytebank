@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:bytebank/components/transferencia_auth_dialog.dart';
 import 'package:bytebank/http/webclients/transferencia_webclient.dart';
 import 'package:bytebank/models/transferencia.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 
@@ -109,9 +110,7 @@ class FormularioTransferenciaState extends State<FormularioTransferencia> {
 
   void _save(Transferencia transactionCreated, String password,
       BuildContext context) async {
-    Transferencia transf = await _send(transactionCreated, password, context);
-
-    _showSuccesDialog(transf, context);
+    await _send(transactionCreated, password, context);
   }
 
   Future<void> _showSuccesDialog(
@@ -126,26 +125,32 @@ class FormularioTransferenciaState extends State<FormularioTransferencia> {
     }
   }
 
-  Future<Transferencia> _send(Transferencia transactionCreated, String password,
+  Future<void> _send(Transferencia transactionCreated, String password,
       BuildContext context) async {
     setState(() {
       _sending = true;
     });
-    final Transferencia transf =
-        await _webClient.save(transactionCreated, password).catchError((e) {
-      _showFailureMessage(context, message: e.message);
-    }, test: (e) => e is HttpException).catchError((e) {
+    try {
+      final Transferencia transf =
+          await _webClient.save(transactionCreated, password);
+      _showSuccesDialog(transf, context);
+    } on TimeoutException catch (e) {
+      FirebaseCrashlytics.instance.recordError(
+          'Erro: ${e.message} Mensagem: timeout ao enviar uma transferência!',
+          null);
       _showFailureMessage(context,
           message: 'timeout ao enviar uma transferência!');
-    }, test: (e) => e is TimeoutException).catchError((e) {
+    } on HttpException catch (e) {
+      FirebaseCrashlytics.instance.recordError(e.message, null);
+      _showFailureMessage(context, message: e.message.toString());
+    } on Exception catch (e) {
+      FirebaseCrashlytics.instance.recordError(e.toString(), null);
       _showFailureMessage(context);
-    }).whenComplete(() {
+    } finally {
       setState(() {
         _sending = false;
       });
-    });
-
-    return transf;
+    }
   }
 
   void _showFailureMessage(BuildContext context,
