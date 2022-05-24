@@ -1,8 +1,13 @@
+import 'dart:async';
+
 import 'package:bytebank/components/transferencia_auth_dialog.dart';
 import 'package:bytebank/http/webclients/transferencia_webclient.dart';
 import 'package:bytebank/models/transferencia.dart';
 import 'package:flutter/material.dart';
+import 'package:uuid/uuid.dart';
 
+import '../../components/progress.dart';
+import '../../components/response_dialog.dart';
 import '../../models/contato.dart';
 
 const _tituloAppBar = 'Criando Transferência';
@@ -24,6 +29,8 @@ class FormularioTransferencia extends StatefulWidget {
 class FormularioTransferenciaState extends State<FormularioTransferencia> {
   final TextEditingController _controladorCampoValor = TextEditingController();
   final TransferenciaWebClient _webClient = TransferenciaWebClient();
+  final String transferenciaId = const Uuid().v4();
+  bool _sending = false;
 
   @override
   Widget build(BuildContext context) {
@@ -37,6 +44,13 @@ class FormularioTransferenciaState extends State<FormularioTransferencia> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
+              Visibility(
+                child: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Progress(message: 'Enviando...'),
+                ),
+                visible: _sending,
+              ),
               Text(
                 widget.contato.nome,
                 style: const TextStyle(
@@ -73,7 +87,7 @@ class FormularioTransferenciaState extends State<FormularioTransferencia> {
                       final double? value =
                           double.tryParse(_controladorCampoValor.text);
                       final transactionCreated =
-                          Transferencia(value, widget.contato);
+                          Transferencia(transferenciaId, value, widget.contato);
                       showDialog(
                         context: context,
                         builder: (contextDialog) => TransferenciaAuthDialog(
@@ -95,10 +109,51 @@ class FormularioTransferenciaState extends State<FormularioTransferencia> {
 
   void _save(Transferencia transactionCreated, String password,
       BuildContext context) async {
-    _webClient.save(transactionCreated, password).then((transaction) {
-      if (transaction != null) {
-        Navigator.pop(context);
-      }
+    Transferencia transf = await _send(transactionCreated, password, context);
+
+    _showSuccesDialog(transf, context);
+  }
+
+  Future<void> _showSuccesDialog(
+      Transferencia transf, BuildContext context) async {
+    if (transf != null) {
+      await showDialog(
+          context: context,
+          builder: (contextDialog) {
+            return SuccessDialog('Transferência concluída!');
+          });
+      Navigator.pop(context);
+    }
+  }
+
+  Future<Transferencia> _send(Transferencia transactionCreated, String password,
+      BuildContext context) async {
+    setState(() {
+      _sending = true;
     });
+    final Transferencia transf =
+        await _webClient.save(transactionCreated, password).catchError((e) {
+      _showFailureMessage(context, message: e.message);
+    }, test: (e) => e is HttpException).catchError((e) {
+      _showFailureMessage(context,
+          message: 'timeout ao enviar uma transferência!');
+    }, test: (e) => e is TimeoutException).catchError((e) {
+      _showFailureMessage(context);
+    }).whenComplete(() {
+      setState(() {
+        _sending = false;
+      });
+    });
+
+    return transf;
+  }
+
+  void _showFailureMessage(BuildContext context,
+      {String message = 'Unknow error!'}) {
+    showDialog(
+        context: context,
+        builder: (contextDialog) {
+          return FailureDialog(message);
+        });
   }
 }

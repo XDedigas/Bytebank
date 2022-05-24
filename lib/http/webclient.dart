@@ -4,6 +4,7 @@ import 'interceptors/logging_interceptor.dart';
 
 final Client client = InterceptedClient.build(
   interceptors: [LoggingInterceptor()],
+  requestTimeout: const Duration(seconds: 5),
 );
 const String baseIP = '192.168.100.7:8080';
 const String baseMetod = 'transactions';

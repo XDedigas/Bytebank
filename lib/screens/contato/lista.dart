@@ -32,7 +32,7 @@ class ListaContatosState extends State<ListaContatos> {
               case ConnectionState.none:
                 break;
               case ConnectionState.waiting:
-                return const Progress();
+                return Progress();
               case ConnectionState.active:
                 break;
               case ConnectionState.done:

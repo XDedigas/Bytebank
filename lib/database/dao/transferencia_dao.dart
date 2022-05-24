@@ -34,8 +34,8 @@ class TransferenciaDao {
   List<Transferencia> _toList(List<Map<String, dynamic>> results) {
     final List<Transferencia> transferencias = [];
     for (Map<String, dynamic> row in results) {
-      final Transferencia transf =
-          Transferencia(row[_nomeCampoValor], row[_nomeCampoContato]);
+      final Transferencia transf = Transferencia(
+          row[_nomeCampoID], row[_nomeCampoValor], row[_nomeCampoContato]);
       transferencias.add(transf);
     }
     return transferencias;
