@@ -135,16 +135,27 @@ class FormularioTransferenciaState extends State<FormularioTransferencia> {
           await _webClient.save(transactionCreated, password);
       _showSuccesDialog(transf, context);
     } on TimeoutException catch (e) {
+      FirebaseCrashlytics.instance
+          .setCustomKey('timeoutException', e.toString());
+      FirebaseCrashlytics.instance
+          .setCustomKey('http_body', transactionCreated.toString());
       FirebaseCrashlytics.instance.recordError(
-          'Erro: ${e.message} Mensagem: timeout ao enviar uma transferência!',
-          null);
+          'Erro: $e Mensagem: timeout ao enviar uma transferência!', null);
       _showFailureMessage(context,
           message: 'timeout ao enviar uma transferência!');
     } on HttpException catch (e) {
-      FirebaseCrashlytics.instance.recordError(e.message, null);
+      FirebaseCrashlytics.instance.setCustomKey('httpException', e.toString());
+      FirebaseCrashlytics.instance
+          .setCustomKey('http_statusCode', e.statusCode.toString());
+      FirebaseCrashlytics.instance
+          .setCustomKey('http_body', transactionCreated.toString());
+      FirebaseCrashlytics.instance.recordError(e, null);
       _showFailureMessage(context, message: e.message.toString());
     } on Exception catch (e) {
-      FirebaseCrashlytics.instance.recordError(e.toString(), null);
+      FirebaseCrashlytics.instance.setCustomKey('exception', e.toString());
+      FirebaseCrashlytics.instance
+          .setCustomKey('http_body', transactionCreated.toString());
+      FirebaseCrashlytics.instance.recordError(e, null);
       _showFailureMessage(context);
     } finally {
       setState(() {

@@ -27,7 +27,8 @@ class TransferenciaWebClient {
       return Transferencia.fromJson(jsonDecode(response.body));
     }
 
-    return Future.error(HttpException(_getMessage(response.statusCode)));
+    return Future.error(
+        HttpException(_getMessage(response.statusCode), response.statusCode));
   }
 
   String? _getMessage(int statusCode) {
@@ -46,5 +47,6 @@ class TransferenciaWebClient {
 
 class HttpException implements Exception {
   final String? message;
-  HttpException(this.message);
+  final int? statusCode;
+  HttpException(this.message, this.statusCode);
 }
